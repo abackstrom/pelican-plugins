@@ -68,6 +68,13 @@ class SitemapGenerator(object):
             'pages': 0.5
         }
 
+        self.extra_pages = (
+            ('index.html', 'index.html'),
+            ('archives.html', 'archives.html'),
+            ('tags.html', 'tags.html'),
+            ('categories.html', 'categories.html'),
+        )
+
         config = settings.get('SITEMAP', {})
 
         if not isinstance(config, dict):
@@ -76,6 +83,10 @@ class SitemapGenerator(object):
             fmt = config.get('format')
             pris = config.get('priorities')
             chfreqs = config.get('changefreqs')
+            extras = config.get('extra_pages')
+
+            if extras:
+                self.extra_pages = extras
 
             if fmt not in ('xml', 'txt'):
                 warning("sitemap plugin: SITEMAP['format'] must be `txt' or `xml'")
@@ -123,7 +134,7 @@ class SitemapGenerator(object):
         if getattr(page, 'status', 'published') != 'published':
             return
 
-        page_path = os.path.join(self.output_path, page.url)
+        page_path = os.path.join(self.output_path, page.save_as)
         if not os.path.exists(page_path):
             return
 
@@ -169,15 +180,14 @@ class SitemapGenerator(object):
             FakePage = collections.namedtuple('FakePage',
                                               ['status',
                                                'date',
-                                               'url'])
+                                               'url',
+                                               'save_as'])
 
-            for standard_page_url in ['index.html',
-                                      'archives.html',
-                                      'tags.html',
-                                      'categories.html']:
+            for url, save_as in self.extra_pages:
                 fake = FakePage(status='published',
                                 date=self.now,
-                                url=standard_page_url)
+                                url=url,
+                                save_as=save_as)
                 self.write_url(fake, fd)
 
             for page in pages:
